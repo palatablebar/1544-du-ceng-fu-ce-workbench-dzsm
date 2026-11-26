@@ -9,9 +9,10 @@ class JointAction:
     changes: dict[str, tuple[float, float]]
 
     def evidence(self, old_value, new_value, extrapolates):
+        change = None if new_value is None else round(new_value-old_value,4)
         return {'联动推演':self.case, '用量':self.work_units, '先决条件':self.notes,
-                '原预测':round(old_value,4), '替换预测':round(new_value,4),
-                '变化':round(new_value-old_value,4), '超训练域':bool(extrapolates),
+                '原预测':round(old_value,4), '替换预测':None if new_value is None else round(new_value,4),
+                '变化':change, '超训练域':bool(extrapolates),
                 '联动量测':{item:{'原值':before,'替换值':after} for item,(before,after) in self.changes.items()}}
 
 

@@ -87,9 +87,19 @@ function renderMeasurements(card, row) {
         const joint = node('details',undefined,'rejected');
         joint.append(node('summary','联动推演'));
         const entries = row.joint_experiments.map(move => ({情形:move['联动推演'],预测变化:move['变化'],用量:move['用量'],
-            作业条件:move['先决条件'],量测:Object.entries(move['联动量测']).map(([name,c])=>`${labels[name][0]} ${c['原值']} → ${c['替换值']}`)}));
+            作业条件:move['先决条件'],量测:Object.entries(move['联动量测']).map(([name,c])=>`${labels[name][0]} ${c['原值']} → ${c['替换值']}`),
+            调整后区间:move['调整后区间'],训练域:move['训练域状态'],签认:move['签认'],签认说明:move['签认说明']}));
         showTables(joint,entries);
         card.append(joint);
+    }
+    if (row.trial_advice) {
+        const advice = node('dl',undefined,'record-fields');
+        advice.append(node('dt','试镀建议'),node('dd',row.trial_advice['试镀建议']));
+        advice.append(node('dt','建议情形'),node('dd',row.trial_advice['情形']));
+        advice.append(node('dt','用量'),node('dd',row.trial_advice['用量']));
+        advice.append(node('dt','原区间'),node('dd',row.trial_advice['原区间']));
+        advice.append(node('dt','签认理由'),node('dd',row.trial_advice['理由']));
+        card.append(node('h3','下一挂试镀建议','inner-heading'),advice);
     }
     if (row.alternatives.length) {
         card.append(node('h3','单项调整推演','inner-heading'));

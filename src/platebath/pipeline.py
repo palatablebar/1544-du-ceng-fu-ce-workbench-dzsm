@@ -161,14 +161,20 @@ def execute(documents, capacity=12, mode='balanced', *, as_of=96):
     def estimate(vector):
         return calibration_service.check_point(model_service.predict_one(kernel, vector), fitted_calibration).estimate
 
+    def assess(vector):
+        return calibration_service.check_point(model_service.predict_one(kernel, vector), fitted_calibration)
+
     # Compare interventions against frozen features, model and calibration;
     # scenario estimates never overwrite the base ticket or its decision.
     for row in row_list:
         current = vectors[row['key']]
         row['alternatives'] = feature_service.render_interventions(current, state, estimate)
-        row['joint_experiments'] = feature_service.render_joint_experiments(current,state,estimate)
+        candidates, advice = feature_service.render_joint_experiments(current,state,assess)
+        row['joint_experiments'] = candidates
+        row['trial_advice'] = advice
     details[7]['records'].extend(audit_service.site_checklist(row_list))
     details[7]['records'].extend(audit_service.intervention_summary(row_list))
+    details[7]['records'].extend(feature_service.trial_advice_rows(row_list))
     overview_report = {'capacity' : capacity, 'mode': mode, 'as_of': as_of, 'sample_hash': closed.batch_hash,
               'policy_hash': closed.policy_hash, 'feature_stamp': state.fingerprint,
               'model': kernel.name, 'run_id': closed.stamp, 'object_name': DISPLAY['object_name'],

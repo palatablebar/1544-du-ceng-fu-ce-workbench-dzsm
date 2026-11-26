@@ -16,6 +16,7 @@ AI/ML · 传统ML · 中型
 | M6 | 槽液变化 | 差异定位和外推审查 | `src/platebath/solution_mix/service.py` | `tests/test_solution_mix.py` |
 | M7 | 台面复测 | 硬规则与额度分配 | `src/platebath/retest_bench/service.py` | `tests/test_retest_bench.py` |
 | M8 | 镀层签认 | 单据及额度证据 | `src/platebath/coating_disposition/service.py` | `tests/test_coating_disposition.py` |
+| M9 | 试镀签认 | 联动推演区间改善与淘汰 | `src/platebath/deposit_factors/trial.py` | `tests/test_trial_advice.py` |
 
 ## 深度登记
 
@@ -30,3 +31,8 @@ AI/ML · 传统ML · 中型
 | TRAP-44 | 校准样本不足 | 分派前转人工判读并保留原因 | `src/platebath/gauge_bands/service.py` | `tests/test_gauge_bands.py::test_empty_calibration_requires_review` |
 | TRAP-53 | 单条推断与混批 | 复用冻结参数，各条估计完全一致 | `src/platebath/thickness_tree/service.py` | `tests/test_thickness_tree.py::test_input_batch_invariance` |
 | TRAP-54 | 特征版本与模型不配对 | 拒绝继续推断并要求重拟合 | `src/platebath/thickness_tree/service.py` | `tests/test_thickness_tree.py::test_mismatched_model_input_version_fails` |
+| TRAP-61 | 联动推演仅点估计占优 | 调整后区间上界低于原下界才算改善，比较用未舍入边界 | `src/platebath/deposit_factors/trial.py` | `tests/test_trial_advice.py::test_rounding_cannot_flip_a_marginal_call` |
+| TRAP-62 | 缺成熟校准实绩 | 转待核，禁止以点估计签出试镀 | `src/platebath/deposit_factors/trial.py` | `tests/test_trial_advice.py::test_missing_calibration_is_pending_not_adopted` |
+| TRAP-63 | 调整后超训练域或触发超流暂停 | 硬约束先淘汰，再比较区间 | `src/platebath/deposit_factors/trial.py` | `tests/test_trial_advice.py::test_out_of_training_and_hard_pause_are_eliminated_before_interval` |
+| TRAP-64 | 多个改善方案的省工取舍 | 先保证区间改善，再取用量最省 | `src/platebath/deposit_factors/trial.py` | `tests/test_trial_advice.py::test_cheapest_is_not_adopted_until_interval_improves` |
+| TRAP-65 | 换序重算或联动推演越权 | 建议与原挂具处置分离，换序结果一致 | `src/platebath/deposit_factors/trial.py` | `tests/test_trial_advice.py::test_reordering_tickets_keeps_advice_and_original_disposition` |

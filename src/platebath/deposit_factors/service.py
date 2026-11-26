@@ -120,15 +120,48 @@ def measure_review(features):
     return evaluate_shift(features.train, features.live)
 
 
-def render_joint_experiments(vector, reference, score):
+def trial_scenario(action, raw, reference, vector, assess, missing):
+    from ..retest_bench.service import signals as rule_signals
+    from .trial import Scenario
+
+    adjusted = tuple(action.changes[key][1] if key in action.changes else value for key,value in zip(RAW_KEYS,raw,strict=True))
+    try:
+        normalized, measured, flags=numeric_fields(adjusted,reference)
+        scenario=replace(vector,values=normalized,input_values=adjusted,factors=measured,excursions=flags)
+        graded=assess(scenario)
+    except (ValueError,ArithmeticError):
+        # 调整后无法落在可推断范围，按超出训练域淘汰并保留原因。
+        return Scenario(action.case,action.work_units,None,None,None,True,False), None, ('不可推断',)
+    hard=any(notice.hard for notice in rule_signals(adjusted,graded.estimate,missing))
+    return (Scenario(action.case,action.work_units,graded.estimate,graded.lower,graded.upper,bool(flags),hard),
+            graded, flags)
+
+
+def render_joint_experiments(vector, reference, assess):
     from .joint import options
+    from .trial import candidate_evidence, resolve
 
     raw = vector.input_values
-    base = score(vector)
+    base = assess(vector)
+    calibrated = not base.uncertain
     replies=[]
+    scenarios=[]
     for action in options(raw,vector.missing):
-        adjusted = tuple(action.changes[key][1] if key in action.changes else value for key,value in zip(RAW_KEYS,raw,strict=True))
-        normalized, measured, signals=numeric_fields(adjusted,reference)
-        scenario=replace(vector,values=normalized,input_values=adjusted,factors=measured,excursions=signals)
-        replies.append(action.evidence(base,score(scenario),signals))
-    return replies
+        scenario, graded, signals = trial_scenario(action,raw,reference,vector,assess,vector.missing)
+        scenarios.append(scenario)
+        prior = None if graded is None else graded.estimate
+        replies.append({**action.evidence(base.estimate,prior,signals),
+                        **candidate_evidence(scenario,base.lower,calibrated)})
+    outcome = resolve(tuple(scenarios),base_lower=base.lower,calibrated=calibrated)
+    advice = {'试镀建议':outcome.status,'情形':outcome.case,'用量':outcome.work,'理由':outcome.reason,
+              '原估计':round(base.estimate,4),
+              '原区间':[None if base.lower is None else round(base.lower,4),None if base.upper is None else round(base.upper,4)]}
+    return replies, advice
+
+
+def trial_advice_rows(rows):
+    """签认理由汇总，按单号定序，便于换序重算比对。"""
+    return [{'签认单':row['key'],'作业区':row['zone'],'试镀建议':row['trial_advice']['试镀建议'],
+             '建议情形':row['trial_advice']['情形'],'用量':row['trial_advice']['用量'],
+             '原区间':row['trial_advice']['原区间'],'理由':row['trial_advice']['理由']}
+            for row in sorted(rows,key=lambda item:item['key'])]
